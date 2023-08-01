@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import NavigateBackButton from '@/app/components/buttons/NavigateBackButton'
 import { useSession } from 'next-auth/react'
-import UnauthorizedAction from '@/app/components/errorPages/unauthorizedAction'
+import UnauthorizedAction from '@/app/components/errorPages/UnauthorizedAction'
 import DataUnavailable from '@/app/components/errorPages/DataUnavailable'
 
 export default function Edit({params, searchParams}) {
