@@ -1,24 +1,15 @@
 "use client"
-import { create, getData } from '@/app/api/api'
-import { CreditCardIcon, KeyIcon, SquaresPlusIcon, UserCircleIcon, UserGroupIcon } from '@heroicons/react/24/outline'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { create, getData } from '@/app/api/api';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import NavigateBackButton from '@/app/components/buttons/NavigateBackButton';
 
-
-
-export default function Edit({params}) {
-  const initialFormData = {name:"", email:"", contact_number:""}
+export default function AddCustomer({params, searchParams}) {
+  const initialFormData = {name:"", email:"", contact_number:"", hub:Number(searchParams.hubId)}
+  const userSession = useSession();
   const [formData, setFormData] = useState(initialFormData);
   const router = useRouter();
-
-//   useEffect(()=>{
-//     const fetchData = async () => {
-//       const  {responseData, responseStatus, error, errorMessage}  = await getData("customers");
-//         console.log(responseData.data[0]?.attributes)
-//         setFormData(responseData?.data[0]?.attributes);
-//       };
-//       fetchData();
-//   },[])
 
   function getFormData(e){
     let {name,value} = e.target;
@@ -27,17 +18,16 @@ export default function Edit({params}) {
 
   async function submitForm(e){
     e.preventDefault();
-    const res = await create("customers",{data:{...formData}});
+    const res = await create("customers",userSession?.data?.token,{data:{...formData}});
     if(res?.ok){
       router.refresh()
       router.back()
     }
-    console.log(res);
-    console.log(res);
   }
 
   return (
     <div className="py-5 lg:grid lg:grid-cols-2 lg:gap-x-5">
+      <div className=''><NavigateBackButton/></div>
       <div className="m-auto w-1/2  space-y-6 sm:px-6 lg:col-span-9 lg:px-0">
         <form action="#" method="POST">
           <div className="shadow sm:overflow-hidden sm:rounded-md">

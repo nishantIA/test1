@@ -1,7 +1,9 @@
-import Navbar from "./components/Navbar";
+import AuthProvider from "./components/authProvider/AuthProvider";
+import Navbar from "./components/navbar/Navbar";
 import "./globals.css";
 import { Inter } from "next/font/google";
 import { Suspense } from "react";
+import AppContextProvider from "./components/context/HubContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
@@ -14,7 +16,9 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={inter.className}>
         {/* <Navbar /> */}
-        {children}
+        <AuthProvider>
+          <AppContextProvider>{children}</AppContextProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,16 +1,22 @@
-"use client"
+"use client";
 import React from "react";
-import {MdArrowBack} from 'react-icons/md'
+import { MdArrowBack } from "react-icons/md";
 import { useRouter } from "next/navigation";
 
 const NavigateBackButton = () => {
-    const router = useRouter();
+  const router = useRouter();
+
   return (
     <>
-    <div className='w-fit px-5'>
-        <button onClick={()=>router.back()} className="px-3 py-2 flex items-center justify-around bg-blue-500 text-white rounded-lg"> <MdArrowBack/>&nbsp;Back</button>
-    </div>
-      
+      <div className="px-5 w-9/12 m-auto">
+        <button
+          onClick={() => router.back()}
+          className="px-3 py-2 flex text-sm font-bold items-center justify-around bg-red-500 hover:bg-red-600 text-white rounded-lg"
+        >
+          <MdArrowBack />
+          &nbsp;Back
+        </button>
+      </div>
     </>
   );
 };

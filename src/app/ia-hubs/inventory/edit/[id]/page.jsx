@@ -1,21 +1,43 @@
 "use client"
-import { edit, getOne } from '@/app/api/api'
+import { edit, getOne, getUserRoleAndHubs } from '@/app/api/api'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import NavigateBackButton from '@/app/components/buttons/NavigateBackButton'
+import { useSession } from 'next-auth/react'
+import UnauthorizedAction from '@/app/components/errorPages/unauthorizedAction'
+import DataUnavailable from '@/app/components/errorPages/DataUnavailable'
 
-export default function Edit({params}) {
+export default function Edit({params, searchParams}) {
   const initialFormData = {seat_id:"", type:"", capacity:"",seat_price:"", currency:""}
   const [formData, setFormData] = useState(initialFormData);
+  const userSession = useSession();
+  const [isUserAllowedToAccessHubData, setIsUserAllowedToAccessHubData] = useState(true);
+  const [dataExistsForSelectedHub, setDataExistsForSelectedHub] = useState(true);
   const router = useRouter();
 
   useEffect(()=>{
     const fetchData = async () => {
-      const  {data}  = await getOne("inventories", params.id);
-        console.log(data)
-        setFormData(data?.attributes);
+      const  {data}  = await getOne("inventories", userSession?.data?.token, params.id, searchParams.hubId);
+      
+      if(data?.[0]){
+        setFormData(data?.[0]?.attributes);
+        setDataExistsForSelectedHub(true)
+        setIsUserAllowedToAccessHubData(true)
+      }else{
+        setDataExistsForSelectedHub(false)
+      }
       };
-      fetchData();
-  },[params.id])
+      if(userSession.status==='authenticated'){
+        userAccessAllowedWithHubId()
+        fetchData();
+      }
+  },[params.id, userSession.status, searchParams?.hubId])
+
+  async function userAccessAllowedWithHubId(){
+    const userRoleAndHubs = await getUserRoleAndHubs(userSession?.data?.token);
+    const isUserAllowed = userRoleAndHubs?.hubs?.some((hub) => hub.id === Number(searchParams?.hubId)); // returns boolean
+    setIsUserAllowedToAccessHubData(isUserAllowed);
+}
 
   function setNewFormData(e){
     let {name,value} = e.target;
@@ -24,12 +46,23 @@ export default function Edit({params}) {
 
   async function submitForm(e){
     e.preventDefault();
-    const res = await edit("inventories",params.id,{data:{...formData}});
+    const res = await edit("inventories",userSession?.data?.token ,params.id,{data:{...formData}});
     if(res?.ok){
       router.refresh()
       router.back()
     }
-    console.log(res);
+  }
+
+  if(userSession.status==='loading'){
+    return <h1>Loading...</h1>;
+  }
+
+  if(!isUserAllowedToAccessHubData){
+    return <UnauthorizedAction/>
+  }
+
+  if(!dataExistsForSelectedHub){
+    return <DataUnavailable/>
   }
 
   return (
@@ -51,7 +84,7 @@ export default function Edit({params}) {
                     type="text"
                     name="seat_id"
                     className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                    value={formData.seat_id}
+                    value={formData?.seat_id}
                     onChange={setNewFormData}
                   />
                 </div>
@@ -65,7 +98,7 @@ export default function Edit({params}) {
                     type="text"
                     name="capacity"
                     className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                    value={formData.capacity}
+                    value={formData?.capacity}
                     onChange={setNewFormData}
                   />
                 </div>
@@ -76,7 +109,7 @@ export default function Edit({params}) {
                   <select
                     id="country"
                     name="type"
-                    value={formData.type}
+                    value={formData?.type}
                     onChange={setNewFormData}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   >
@@ -96,7 +129,7 @@ export default function Edit({params}) {
                     type="text"
                     name="seat_price"
                     className="mt-1 block w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-                    value={formData.seat_price}
+                    value={formData?.seat_price}
                     onChange={setNewFormData}
                   />
                 </div>
@@ -107,7 +140,7 @@ export default function Edit({params}) {
                   <select
                     id="country"
                     name="currency"
-                    value={formData.currency}
+                    value={formData?.currency}
                     onChange={setNewFormData}
                     className="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
                   >

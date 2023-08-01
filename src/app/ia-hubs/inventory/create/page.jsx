@@ -1,16 +1,16 @@
 "use client"
-import { create, edit, getOne } from '@/app/api/api'
-import { CreditCardIcon, KeyIcon, SquaresPlusIcon, UserCircleIcon, UserGroupIcon } from '@heroicons/react/24/outline'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { create, getData } from '@/app/api/api';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import NavigateBackButton from '@/app/components/buttons/NavigateBackButton';
 
-
-
-export default function AddInventory() {
-  const initialFormData = {seat_id:"", type:"", capacity:"",seat_price:"600", currency:"INR"}
+export default function AddInventory({searchParams}) {
+  const initialFormData = {seat_id:"", type:"", capacity:"",seat_price:0, currency:"INR", hub:Number(searchParams.hubId)}
+  const userSession = useSession();
   const [formData, setFormData] = useState(initialFormData);
   const router = useRouter();
-
+  
   function setNewFormData(e){
     let {name,value} = e.target;
     setFormData({...formData,[name]:value});
@@ -18,14 +18,13 @@ export default function AddInventory() {
 
   async function submitForm(e){
     e.preventDefault();
-    const newInvetoryData = {data:formData}
-    const res = await create("inventories",newInvetoryData);
+    const newInvetoryData = {data:formData};
+    const res = await create("inventories", userSession?.data?.token, newInvetoryData);
     if(res?.ok){
       router.refresh()
       router.back()
     }
-    console.log(res);
-    console.log(formData);
+    console.log(res)
   }
 
   return (

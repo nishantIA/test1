@@ -5,7 +5,7 @@ export default function Loading() {
       <div className="h-fit" role="status">
         <svg
           aria-hidden="true"
-          class="inline w-12 h-12 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
+          className="inline w-12 h-12 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
           viewBox="0 0 100 101"
           fill="none"
         >

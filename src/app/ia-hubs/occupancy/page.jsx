@@ -1,154 +1,150 @@
-"use client";
-import React, { useCallback, useEffect, useState } from "react";
-import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
-import { Combobox } from "@headlessui/react";
+import { getData, getUserRoleAndHubs } from "@/app/api/api";
+import { getServerSession } from "next-auth";
+import DeleteButton from "@/app/components/buttons/DeleteButton";
+import Link from "next/link";
+import { options } from "@/app/api/auth/[...nextauth]/options";
+import PageNotFound from "@/app/components/errorPages/PageNotFound";
 
-function classNames(...classes) {
-  return classes.filter(Boolean).join(" ");
-}
-const people = [
-  { id: 1, name: "Leslie Alexander" },
-  { id: 1, name: "Lesl" },
-  { id: 1, name: "Niel" },
-  { id: 1, name: "John Alexander" },
-  { id: 1, name: "John Alexander" },
-  { id: 1, name: "John Alexander" },
-  { id: 1, name: "Jack Alexander" },
-  { id: 1, name: "Leslie Alexander" },
-  // More users...
-];
+export default async function OccupancyList({searchParams}) {
+  const userSession = await getServerSession(options);
+  const userRoleAndHubs = await getUserRoleAndHubs(userSession?.token);
+  const hubIdFromSearchQueryParams = searchParams.hubId;
 
-const Occupancy = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  // 
-  const url = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/inventories?filters[seat_id][$contains]=${searchQuery}&pagination[start]=0&pagination[limit]=5`;
-  const [data, setData] = useState([]);
-
-  const [selectedSeat, setSelectedSeat] = useState(null);
-
-  const filteredData =
-    searchQuery === ""
-      ? data
-      : data.filter((item) => {
-          const value = item.attributes.seat_id.toLowerCase().includes(searchQuery.toLowerCase());
-          console.log(value)
-          return value
-        });
-
-  function setSearchQueryValue(e) {
-    setSearchQuery(e.target.value);
+  if(userSession.role!=="authenticated"){
+    return <h1>Unauthorized user</h1>
   }
 
-  const searchQueryData = useCallback(
-    async (url) => {
-      if (searchQuery !== "") {
-        const response = await fetch(url);
-        if(!response?.ok){
-          return
-        }
-        const responseData = await response.json();
-        setData(responseData?.data);
-      }
-    },[searchQuery])
+  const isUserAllowedToAccessHubData = userRoleAndHubs?.hubs?.some((hub) => hub.id === Number(hubIdFromSearchQueryParams)); 
+  
+  if(!isUserAllowedToAccessHubData){
+    return <PageNotFound/>
+  }
 
-  useEffect(() => {
-    let timer = setTimeout(() => {
-      searchQueryData(url)
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [url, searchQueryData]);
+  const { responseData, responseStatus, error, errorMessage } = await getData("allocations", userSession?.token, hubIdFromSearchQueryParams);
+  const { data } = responseData;
+
+  if (error) {
+    return <h1>{JSON.stringify(error)}</h1>;
+  }
+
+  if (!responseData?.data && responseStatus !== "OK") {
+    return <h1>{JSON.stringify(responseStatus)}</h1>;
+  }
 
   return (
-    <div className="py-5 lg:grid lg:grid-cols-2 lg:gap-x-5">
-      <div className="m-auto w-1/2  space-y-6 sm:px-6 lg:col-span-9 lg:px-0">
-        <form action="#" method="POST">
-          <div className="shadow sm:rounded-md">
-            <div className="space-y-6 bg-white py-6 px-4 sm:p-6">
-              <div>
-                <h3 className="text-lg font-medium leading-6 text-gray-900">
-                  Customer Information
-                </h3>
-                {/* <p className="mt-1 text-sm text-gray-500">Use a permanent address where you can recieve mail.</p> */}
-              </div>
-              <div className="grid grid-cols-6 gap-6">
-              <div className="col-span-6 sm:col-span-4">
-              <Combobox
-                as="div"
-                value={selectedSeat}
-                onChange={setSelectedSeat}
+    <div className="px-4 m-auto max-w-7xl mt-4 sm:px-6 lg:px-8">
+      {/* {JSON.stringify(data)} */}
+      <div className="sm:flex sm:items-center">
+        <div className="sm:flex-auto">
+          <h1 className="text-xl font-semibold text-gray-900">Occupancy</h1>
+        </div>
+        <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
+          <Link href={`/ia-hubs/occupancy/create?hubId=${searchParams?.hubId}`}>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
+            >
+              Add occupancy
+            </button>
+          </Link>
+        </div>
+      </div>
+      <div className="-mx-4 mt-8 overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:-mx-6 md:mx-0 md:rounded-lg">
+        <table className="min-w-full divide-y divide-gray-300">
+          <thead className="bg-gray-50">
+            <tr>
+              <th
+                scope="col"
+                className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
               >
-                <Combobox.Label className="block text-sm font-medium text-gray-700">
-                  Seat ID
-                </Combobox.Label>
-                <div className="relative mt-1">
-                  <Combobox.Input
-                    className="w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500 sm:text-sm"
-                    onChange={setSearchQueryValue}
-                    displayValue={(person) => person}
-                    placeholder="Search seat id..."
-                  />
-                  <Combobox.Button className="absolute inset-y-0 right-0 flex items-center rounded-r-md px-2 focus:outline-none">
-                    <ChevronUpDownIcon
-                      className="h-5 w-5 text-gray-400"
-                      aria-hidden="true"
-                    />
-                  </Combobox.Button>
-
-                  {filteredData.length > 0 && (
-                    <Combobox.Options className="absolute z-1000 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                      {filteredData.map((element) => (
-                        <Combobox.Option
-                          key={element.id}
-                          value={element.attributes.seat_id}
-                          className={({ active }) =>
-                            classNames(
-                              "relative cursor-default select-none py-2 pl-3 pr-9",
-                              active
-                                ? "bg-red-600 text-white"
-                                : "text-gray-900"
-                            )
-                          }
-                        >
-                          {({ active, selected }) => (
-                            <>
-                              <span
-                                className={classNames(
-                                  "block truncate",
-                                  selected && "font-semibold"
-                                )}
-                              >
-                                {element.attributes.seat_id}
-                              </span>
-
-                              {selected && (
-                                <span
-                                  className={classNames(
-                                    "absolute z-10 inset-y-0 right-0 flex items-center pr-4",
-                                    active ? "text-white" : "text-red-600"
-                                  )}
-                                >
-                                  <CheckIcon
-                                    className="h-5 w-5"
-                                    aria-hidden="true"
-                                  />
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </Combobox.Option>
-                      ))}
-                    </Combobox.Options>
-                  )}
-                </div>
-              </Combobox>
-              </div>
-              </div>
-            </div>
-          </div>
-        </form>
+                Allocation ID
+              </th>
+              <th
+                scope="col"
+                className="hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 lg:table-cell"
+              >
+                Customer
+              </th>
+              <th
+                scope="col"
+                className="hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 lg:table-cell"
+              >
+                Seat ID
+              </th>
+              <th
+                scope="col"
+                className="hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell"
+              >
+                Start date
+              </th>
+              <th
+                scope="col"
+                className="hidden px-3 py-3.5 text-left text-sm font-semibold text-gray-900 sm:table-cell"
+              >
+                End date
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200 bg-white">
+            {data.map((occupancy) => (
+              <tr key={occupancy.id}>
+                <td className="w-full max-w-0 py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:w-auto sm:max-w-none sm:pl-6">
+                  {occupancy.attributes.allocationId}
+                  <dl className="font-normal lg:hidden">
+                    <dt className="sr-only">Customer</dt>
+                    <dd className="mt-1 truncate text-gray-700">
+                      {occupancy.attributes.customer?.data?.attributes?.name}
+                    </dd>
+                    <dt className="sr-only">Seat ID</dt>
+                    <dd className="mt-1 truncate text-gray-700">
+                      {occupancy.attributes.inventory?.data?.attributes.seat_id}
+                    </dd>
+                    <dt className="sr-only sm:hidden">startDate</dt>
+                    <dd className="mt-1 truncate text-gray-500 sm:hidden">
+                      {occupancy.attributes.startDate}
+                    </dd>
+                    <dt className="sr-only sm:hidden">endDate</dt>
+                    <dd className="mt-1 truncate text-gray-500 sm:hidden">
+                      {occupancy.attributes.endDate}
+                    </dd>
+                  </dl>
+                </td>
+                <td className="hidden px-3 py-4 text-sm text-gray-500 lg:table-cell">
+                  {occupancy.attributes.customer?.data?.attributes?.name}
+                </td>
+                <td className="hidden px-3 py-4 text-sm text-gray-500 lg:table-cell">
+                  {occupancy.attributes.inventory?.data?.attributes?.seat_id}
+                </td>
+                <td className="hidden px-3 py-4 text-sm text-gray-500 sm:table-cell">
+                  {occupancy.attributes.startDate}
+                </td>
+                <td className="hidden px-3 py-4 text-sm text-gray-500 sm:table-cell">
+                  {occupancy.attributes.endDate ?? "--"}
+                </td>
+                {/* <td className="py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                  <Link
+                    href={`/ia-hubs/customers/view/${allocation.id}`}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    View<span className="sr-only">, {"NA"}</span>
+                  </Link>
+                </td> */}
+                <td className="py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                  <Link
+                    href={`/ia-hubs/occupancy/edit/${occupancy.id}?hubId=${hubIdFromSearchQueryParams}`}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    Edit<span className="sr-only">, {occupancy.id}</span>
+                  </Link>
+                </td>
+                <td className="py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                  <DeleteButton endPoint={"allocations"} token = {userSession?.token} id={occupancy.id} deleteItemName={occupancy.attributes.allocationId}/>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
-};
-
-export default Occupancy;
+}

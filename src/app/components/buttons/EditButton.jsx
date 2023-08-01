@@ -4,8 +4,8 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const EditButton = ({ id }) => {
-    const pathName = usePathname()
-    console.log(pathName)
+    const pathName = usePathname();
+
   return (
     <>
       <Link

@@ -1,25 +1,22 @@
 "use client";
 import React, { useState } from "react";
-// import { deleteData } from "./api";
 import { useRouter } from "next/navigation";
 import { deleteData } from "@/app/api/api";
 
-const DeleteButton = ({ endPoint, id }) => {
-  const [modalDisplay, setModalDisplay] = useState(false);
+const DeleteButton = ({ endPoint,token, id, deleteItemName }) => {
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
+
   async function deleteProduct() {
-    const res = await deleteData(endPoint, id);
+    const res = await deleteData(endPoint,token, id);
     if (res?.ok) {
       router.refresh();
     }
-    setShowModal(false)
-    console.log(res);
+    setShowModal(false);
   }
+
   return (
     <div>
-    
-
       <button
         className="text-red-600 hover:text-red-900"
         type="button"
@@ -29,17 +26,16 @@ const DeleteButton = ({ endPoint, id }) => {
       </button>
       {showModal ? (
         <>
-          <div
-            className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none"
-          >
-            <div className="relative w-auto my-6 mx-auto max-w-3xl">
+          <div className="justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none">
+            <div className="relative w-64 sm:w-96 lg:w-1/3 my-6 mx-auto max-w-3xl">
               {/*content*/}
               <div className="border-0 px-2 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none">
-                
                 {/*body*/}
                 <div className="relative p-4 flex-auto">
-                  <p className="my-0 text-base text-left text-slate-500 leading-relaxed">
-                  Are you sure you want to delete this entity?
+                  <p className="my-0 text-base text-center text-slate-500 leading-relaxed">
+                    Are you sure you want to delete{" "}
+                    <span className="text-red-500 font-semibold">{`"${deleteItemName}"`}</span>
+                    ?
                   </p>
                 </div>
                 {/*footer*/}

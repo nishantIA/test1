@@ -1,15 +1,27 @@
-import { getData } from "@/app/api/api"
-import findPath from "@/app/common/common";
+import { getData, getUserRoleAndHubs } from "@/app/api/api";
+import { getServerSession } from "next-auth";
 import DeleteButton from "@/app/components/buttons/DeleteButton";
 import Link from "next/link";
+import { options } from "@/app/api/auth/[...nextauth]/options";
+import PageNotFound from "@/app/components/errorPages/PageNotFound";
 
-const people = [
-  { name: 'Lindsay Walton', title: 'Front-end Developer', email: 'lindsay.walton@example.com', role: 'Member' },
-  // More people...
-]
+export default async function InventoryList({searchParams}) {
+  const userSession = await getServerSession(options);
+  const userRoleAndHubs = await getUserRoleAndHubs(userSession?.token);
+  const hubIdFromSearchQueryParams = searchParams.hubId;
 
-export default async function CustomersList() {
-    const  {responseData, responseStatus, error, errorMessage}  = await getData("inventories");
+  if(userSession.role!=="authenticated"){
+    return <h1>Unauthorized user</h1>
+  }
+
+  const isUserAllowedToAccessHubData = userRoleAndHubs?.hubs?.some((hub) => hub.id === Number(hubIdFromSearchQueryParams)); 
+
+  if(!isUserAllowedToAccessHubData){
+    return <PageNotFound/>
+  }
+
+    const { responseData, responseStatus, error, errorMessage } = await getData("inventories", userSession?.token, hubIdFromSearchQueryParams);
+    const { data } = responseData;
     
     if (error) {
       return <h1>{JSON.stringify(error)}</h1>
@@ -19,19 +31,28 @@ export default async function CustomersList() {
       return <h1>{JSON.stringify(responseStatus)}</h1>
     }
 
-    const {data} = responseData;
+    function convertToPascalCase(string=""){
+      if(typeof string===typeof ""){
+          const stringArr = string.split("-");
+          let convertedString = stringArr.map((ele)=>{
+          const arrayFromString = ele.split("")
+          arrayFromString[0] = arrayFromString[0].toUpperCase()
+          return arrayFromString.join("");
+        })
+        return convertedString.join(" ")
+      }
+      return "";
+    }
 
 
   return (
     <div className="px-4 m-auto max-w-7xl mt-4 sm:px-6 lg:px-8">
-      {/* {JSON.stringify(data)} */}
       <div className="sm:flex sm:items-center">
         <div className="sm:flex-auto">
-            {/* <h1 className="text-xl font-semibold text-gray-900">Data List</h1>
-            <h2 className="text-lg font-semibold text-gray-900">{"[Hub Name]"}</h2> */}
+          <h1 className="text-xl font-semibold text-gray-900">Inventory</h1>
         </div>
         <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-          <Link href={"/ia-hubs/inventory/create"}>
+          <Link href={`/ia-hubs/inventory/create?hubId=${searchParams?.hubId}`}>
           <button
             type="button"
             className="inline-flex items-center justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto"
@@ -80,7 +101,7 @@ export default async function CustomersList() {
                   {seat.attributes.seat_id}
                   <dl className="font-normal lg:hidden">
                     <dt className="sr-only">Seat ID</dt>
-                    <dd className="mt-1 truncate text-gray-700">{seat.attributes.type}</dd>
+                    <dd className="mt-1 truncate text-gray-700">{convertToPascalCase(seat.attributes.type)}</dd>
                     <dt className="sr-only sm:hidden">Seat type</dt>
                     <dd className="mt-1 truncate text-gray-500 sm:hidden">{seat.attributes.capacity}</dd>
                     <dt className="sr-only sm:hidden">Capacity</dt>
@@ -89,7 +110,7 @@ export default async function CustomersList() {
                     <dd className="mt-1 truncate text-gray-500 sm:hidden">{seat.attributes.currency}</dd>
                   </dl>
                 </td>
-                <td className="hidden px-3 py-4 text-sm text-gray-500 lg:table-cell">{seat.attributes.type}</td>
+                <td className="hidden px-3 py-4 text-sm text-gray-500 lg:table-cell">{convertToPascalCase(seat.attributes.type)}</td>
                 <td className="hidden px-3 py-4 text-sm text-gray-500 sm:table-cell">{seat.attributes.capacity}</td>
                 <td className="hidden px-3 py-4 text-sm text-gray-500 sm:table-cell">{new Intl.NumberFormat().format(seat.attributes.seat_price)}</td>
                 <td className="hidden px-3 py-4 text-sm text-gray-500 sm:table-cell">{seat.attributes.currency}</td>
@@ -99,12 +120,12 @@ export default async function CustomersList() {
                   </Link>
                 </td> */}
                 <td className="py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                  <Link href={`/ia-hubs/inventory/edit/${seat.id}`} className="text-red-600 hover:text-red-900">
+                  <Link href={`/ia-hubs/inventory/edit/${seat.id}?hubId=${hubIdFromSearchQueryParams}`} className="text-red-600 hover:text-red-900">
                     Edit<span className="sr-only">, {seat.name}</span>
                   </Link>
                 </td>
                 <td className="py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                  <DeleteButton endPoint={"inventories"} id={seat.id}/>
+                  <DeleteButton endPoint={"inventories"} token = {userSession?.token} id={seat.id} deleteItemName={seat.attributes.seat_id}/>
                 </td>
               </tr>
             ))}
